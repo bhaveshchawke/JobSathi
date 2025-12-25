@@ -32,19 +32,36 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/applications', require('./routes/applications'));
 
+const fs = require('fs');
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('MongoDB Connected (Betul Jobs)'))
     .catch(err => console.error(err));
 
 // Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
-    // Set static folder
-    app.use(express.static(path.join(__dirname, '../client/dist')));
+const clientBuildPath = path.join(__dirname, '../client/dist');
+console.log(`[DEBUG] NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[DEBUG] Client Build Path: ${clientBuildPath}`);
+console.log(`[DEBUG] Client Build Exists: ${fs.existsSync(clientBuildPath)}`);
 
-    app.get('*', (req, res) => {
-        res.sendFile(path.resolve(__dirname, '../', 'client', 'dist', 'index.html'));
-    });
+if (process.env.NODE_ENV === 'production') {
+    if (fs.existsSync(clientBuildPath)) {
+        app.use(express.static(clientBuildPath));
+
+        app.get('*', (req, res) => {
+            const indexPath = path.join(clientBuildPath, 'index.html');
+            if (fs.existsSync(indexPath)) {
+                res.sendFile(indexPath);
+            } else {
+                res.status(404).send('Error: index.html not found in build directory.');
+            }
+        });
+    } else {
+        app.get('/', (req, res) => {
+            res.send(`API Running (Production), but Client Build not found at: ${clientBuildPath}`);
+        });
+    }
 } else {
     app.get('/', (req, res) => {
         res.send('Betul Jobs Portal API is Running...');
