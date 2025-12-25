@@ -49,7 +49,8 @@ if (process.env.NODE_ENV === 'production') {
     if (fs.existsSync(clientBuildPath)) {
         app.use(express.static(clientBuildPath));
 
-        app.get('*', (req, res) => {
+        // Express 5 regex for catch-all
+        app.get(/.*/, (req, res) => {
             const indexPath = path.join(clientBuildPath, 'index.html');
             if (fs.existsSync(indexPath)) {
                 res.sendFile(indexPath);
